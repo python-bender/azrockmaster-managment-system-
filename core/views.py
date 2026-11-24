@@ -126,3 +126,45 @@ def driver_create(request):
     form=DriverForm(request.POST or None)
     if form.is_valid(): form.save(); messages.success(request,"Driver saved."); return redirect("fleet")
     return render(request,"core/form.html",{"form":form,"title":"Add driver"})
+
+
+# Temporary first-owner bootstrap. Remove INITIAL_ADMIN_SETUP_TOKEN from the
+# hosting environment immediately after creating the first superuser.
+import os
+import secrets
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.views.decorators.http import require_http_methods
+
+@require_http_methods(["GET", "POST"])
+def initial_admin_setup(request):
+    User = get_user_model()
+    if User.objects.filter(is_superuser=True).exists():
+        return render(request, "core/setup_closed.html", status=410)
+
+    setup_token = os.environ.get("INITIAL_ADMIN_SETUP_TOKEN", "")
+    if not setup_token:
+        return render(request, "core/setup_unavailable.html", status=503)
+
+    error = ""
+    if request.method == "POST":
+        supplied_token = request.POST.get("setup_token", "")
+        password = request.POST.get("password", "")
+        password_confirm = request.POST.get("password_confirm", "")
+        if not secrets.compare_digest(supplied_token, setup_token):
+            error = "The setup key is incorrect."
+        elif password != password_confirm:
+            error = "The passwords do not match."
+        elif len(password) < 12:
+            error = "Use a password with at least 12 characters."
+        else:
+            user = User.objects.create_superuser(
+                username="azrockmaster",
+                email=request.POST.get("email", "").strip(),
+                password=password,
+            )
+            owner_group, _ = Group.objects.get_or_create(name="Owner")
+            user.groups.add(owner_group)
+            return render(request, "core/setup_complete.html")
+
+    return render(request, "core/initial_admin_setup.html", {"error": error})
