@@ -4,9 +4,8 @@ from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
 
-load_dotenv(BASE_DIR / ".env")
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "development-only-change-before-deploy")
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
