@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: az-rockmaster-cloud
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: python manage.py migrate && gunicorn azrockmaster.wsgi:application
+    healthCheckPath: /accounts/login/
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
