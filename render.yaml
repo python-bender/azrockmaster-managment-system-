@@ -1,7 +1,14 @@
+databases:
+  - name: az-rockmaster-db
+    plan: free
+    databaseName: azrockmaster
+    user: azrockmaster
+
 services:
   - type: web
     name: az-rockmaster-cloud
     runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     startCommand: python manage.py migrate && gunicorn azrockmaster.wsgi:application
     healthCheckPath: /accounts/login/
@@ -11,4 +18,6 @@ services:
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: az-rockmaster-db
+          property: connectionString
