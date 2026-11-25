@@ -28,6 +28,10 @@ class CustomerRegistrationForm(forms.Form):
             field.widget.attrs["class"] = "form-control"
     def clean(self):
         cleaned = super().clean()
+        if len(cleaned.get("password1", "")) < 12:
+            self.add_error("password1", "Use at least 12 characters.")
+        if User.objects.filter(email__iexact=cleaned.get("email", "")).exists():
+            self.add_error("email", "An account with this email already exists.")
         if cleaned.get("password1") != cleaned.get("password2"):
             self.add_error("password2", "Passwords do not match.")
         if User.objects.filter(username=cleaned.get("username")).exists():
