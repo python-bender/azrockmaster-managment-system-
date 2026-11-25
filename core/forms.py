@@ -20,7 +20,7 @@ class SupplierForm(StyledModelForm):
 class ProductForm(StyledModelForm):
     class Meta:
         model = Product
-        fields = ["name", "category", "description", "active"]
+        fields = ["name", "category", "description", "unit_rate", "unit_label", "active"]
 
 class OrderForm(StyledModelForm):
     class Meta:
