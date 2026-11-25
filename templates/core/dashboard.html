@@ -1,10 +1,35 @@
-{% extends "core/base.html" %}{% block title %}Dashboard · AZ Rockmaster{% endblock %}{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4"><div><h2 class="fw-bold mb-1">Business Overview</h2><div class="text-secondary">AZ ROCKMASTER ABUJA · {{ now|date:"d M Y" }}</div></div><a class="btn btn-gold" href="/orders/new/">+ New Order</a></div>
-<div class="row g-3 mb-4">
-{% for label,value in metrics %}<div class="col-6 col-xl-3"><div class="card p-3"><div class="text-secondary small">{{ label }}</div><div class="metric">{{ value }}</div></div></div>{% endfor %}
-<div class="col-6 col-xl-3"><div class="card p-3"><div class="text-secondary small">Orders</div><div class="metric">{{ order_count }}</div></div></div>
-<div class="col-6 col-xl-3"><div class="card p-3"><div class="text-secondary small">Customers</div><div class="metric">{{ customer_count }}</div></div></div>
-<div class="col-6 col-xl-3"><div class="card p-3"><div class="text-secondary small">Pending expense approvals</div><div class="metric">{{ pending_expenses }}</div></div></div>
+{% extends "core/base.html" %}
+{% block title %}Dashboard · AZ Rockmaster{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 page-heading">
+  <div><h2 class="fw-bold mb-1">Business Overview</h2><div class="text-secondary subheading">AZ ROCKMASTER ABUJA · {% now "d M Y" %}</div></div>
+  <a class="btn btn-gold px-3" href="/orders/new/">＋ New Order</a>
 </div>
-<div class="card p-3"><div class="d-flex justify-content-between mb-3"><h5 class="fw-bold">Recent orders</h5><a href="/orders/">View all</a></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Order</th><th>Customer</th><th>Material</th><th>Pricing</th><th>Value</th><th>Status</th></tr></thead><tbody>{% for o in recent_orders %}<tr><td>{{ o.order_number }}</td><td>{{ o.customer.name }}</td><td>{{ o.product.name }}</td><td>{{ o.get_pricing_basis_display }}</td><td>₦{{ o.sales_total|floatformat:2 }}</td><td><span class="tag">{{ o.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="6" class="text-center text-secondary">No orders recorded yet.</td></tr>{% endfor %}</tbody></table></div></div>
-<div class="text-secondary small mt-3">Figures are based on records entered in the system. Confirmed accounting reports will be expanded in the next phase.</div>{% endblock %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="card p-3 h-100"><div class="text-secondary small mb-2">Total sales value</div><div class="metric">₦{{ sales|floatformat:2 }}</div><div class="small text-secondary mt-1">Non-cancelled orders</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card p-3 h-100"><div class="text-secondary small mb-2">Payments received</div><div class="metric">₦{{ paid|floatformat:2 }}</div><div class="small text-secondary mt-1">Recorded payments</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card p-3 h-100"><div class="text-secondary small mb-2">Outstanding balance</div><div class="metric">₦{{ receivables|floatformat:2 }}</div><div class="small text-secondary mt-1">Estimated receivables</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card p-3 h-100"><div class="text-secondary small mb-2">Procurement cost</div><div class="metric">₦{{ procurement_cost|floatformat:2 }}</div><div class="small text-secondary mt-1">Recorded procurement</div></div></div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="card p-3 h-100"><div class="text-secondary small">Orders</div><div class="metric">{{ order_count }}</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card p-3 h-100"><div class="text-secondary small">Customers</div><div class="metric">{{ customer_count }}</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card p-3 h-100"><div class="text-secondary small">Approved expenses</div><div class="metric">₦{{ approved_expenses|floatformat:2 }}</div></div></div>
+  <div class="col-6 col-xl-3"><div class="card p-3 h-100"><div class="text-secondary small">Pending approvals</div><div class="metric">{{ pending_expenses }}</div></div></div>
+</div>
+<div class="card p-3 mb-4">
+  <h5 class="fw-bold mb-3">Quick actions</h5>
+  <div class="row g-2">
+    <div class="col-6 col-lg-3"><a class="quick-link" href="/orders/new/">＋ <span>New order</span></a></div>
+    <div class="col-6 col-lg-3"><a class="quick-link" href="/customers/new/">♙ <span>Add customer</span></a></div>
+    <div class="col-6 col-lg-3"><a class="quick-link" href="/expenses/new/">₦ <span>Record expense</span></a></div>
+    <div class="col-6 col-lg-3"><a class="quick-link" href="/products/new/">◆ <span>Add product</span></a></div>
+  </div>
+</div>
+<div class="card p-3">
+  <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="fw-bold mb-0">Recent orders</h5><a href="/orders/" class="small">View all</a></div>
+  <div class="d-none d-md-block table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Order</th><th>Customer</th><th>Material</th><th>Pricing</th><th>Value</th><th>Status</th></tr></thead><tbody>{% for o in recent_orders %}<tr><td>{{ o.order_number }}</td><td>{{ o.customer.name }}</td><td>{{ o.product.name }}</td><td>{{ o.get_pricing_basis_display }}</td><td>₦{{ o.sales_total|floatformat:2 }}</td><td><span class="tag">{{ o.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="6" class="text-center text-secondary py-4">No orders recorded yet.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="d-md-none">{% for o in recent_orders %}<div class="mobile-order"><div class="d-flex justify-content-between gap-2"><strong>{{ o.order_number }}</strong><span class="tag">{{ o.get_status_display }}</span></div><div class="mt-2 fw-semibold">{{ o.customer.name }}</div><div class="small text-secondary">{{ o.product.name }} · {{ o.get_pricing_basis_display }}</div><div class="fw-bold mt-2">₦{{ o.sales_total|floatformat:2 }}</div></div>{% empty %}<div class="text-center text-secondary py-4">No orders recorded yet.</div>{% endfor %}</div>
+</div>
+<div class="text-secondary small mt-3">Figures reflect records entered in the system. Revenue, payments, procurement and expenses are shown separately; they are not a final profit calculation.</div>
+{% endblock %}
