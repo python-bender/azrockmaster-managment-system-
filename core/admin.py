@@ -10,7 +10,7 @@ class SupplierAdmin(admin.ModelAdmin):
     search_fields = ("name","phone","location")
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("name","category","active")
+    list_display = ("name","category","unit_rate","unit_label","active")
     list_filter = ("category","active")
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
