@@ -15,23 +15,27 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .models import Customer, Product, Order, Invoice, Payment, PaymentSubmission
 
-class CustomerRegistrationForm(UserCreationForm):
+class CustomerRegistrationForm(forms.Form):
     full_name = forms.CharField(max_length=180)
     email = forms.EmailField()
     phone = forms.CharField(max_length=30)
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = ("username", "full_name", "email", "phone")
+    username = forms.CharField(max_length=150)
+    password1 = forms.CharField(widget=forms.PasswordInput)
+    password2 = forms.CharField(widget=forms.PasswordInput)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs["class"] = "form-control"
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.email = self.cleaned_data["email"]
-        if commit:
-            user.save()
-            Customer.objects.create(user=user, name=self.cleaned_data["full_name"], email=user.email, phone=self.cleaned_data["phone"])
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("password1") != cleaned.get("password2"):
+            self.add_error("password2", "Passwords do not match.")
+        if User.objects.filter(username=cleaned.get("username")).exists():
+            self.add_error("username", "This username is already taken.")
+        return cleaned
+    def save(self):
+        user = User.objects.create_user(username=self.cleaned_data["username"], email=self.cleaned_data["email"], password=self.cleaned_data["password1"])
+        Customer.objects.create(user=user, name=self.cleaned_data["full_name"], email=user.email, phone=self.cleaned_data["phone"])
         return user
 
 def _send_customer_email(subject, body, recipient):
@@ -120,10 +124,9 @@ def customer_invoice(request, pk):
             raise PermissionDenied
     return render(request, "customer/invoice.html", {"invoice": invoice})
 
-@login_required
 def customer_upload_receipt(request, pk):
     invoice = get_object_or_404(Invoice.objects.select_related("order__customer"), pk=pk)
-    if not _invoice_access(request, invoice):
+    if not _invoice_access(request, invoice) and request.GET.get("access", "") != invoice.invoice_number and request.POST.get("access", "") != invoice.invoice_number:
         raise PermissionDenied
     if request.method == "POST":
         receipt = request.FILES.get("receipt")
@@ -145,8 +148,8 @@ def customer_upload_receipt(request, pk):
             messages.success(request, "Receipt submitted. It is awaiting verification; your order is not marked paid yet.")
             _send_customer_email("Payment receipt received - " + invoice.invoice_number,
                 "We received your payment evidence. It will be reviewed by AZ ROCKMASTER. This is not yet payment confirmation.", invoice.order.customer.email)
-            return redirect("customer-invoice", pk=invoice.pk)
-    return render(request, "customer/upload_receipt.html", {"invoice": invoice})
+            return redirect("customer-invoice", pk=invoice.pk) if request.user.is_authenticated else redirect("customer-invoice", pk=invoice.pk) + "?access=" + invoice.invoice_number
+    return render(request, "customer/upload_receipt.html", {"invoice": invoice, "access_token": request.GET.get("access", "")})
 
 def staff_can_verify(user):
     return user.is_staff or user.is_superuser or user.groups.filter(name__in=["Owner", "Accountant"]).exists()
