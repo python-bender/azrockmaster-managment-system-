@@ -6,9 +6,14 @@ from core import customer_views
 
 urlpatterns = [
     path("initial-admin-setup/", initial_admin_setup, name="initial-admin-setup"),
+    path("", customer_views.storefront, name="storefront"),
+    path("cart/", customer_views.cart_view, name="cart-view"),
+    path("cart/add/<int:pk>/", customer_views.cart_add, name="cart-add"),
+    path("cart/update/", customer_views.cart_update, name="cart-update"),
+    path("checkout/", customer_views.customer_order, name="customer-order"),
     path("customer/", customer_views.customer_portal, name="customer-portal"),
     path("customer/register/", customer_views.customer_register, name="customer-register"),
-    path("customer/order/", customer_views.customer_order, name="customer-order"),
+
     path("customer/invoice/<int:pk>/", customer_views.customer_invoice, name="customer-invoice"),
     path("customer/invoice/<int:pk>/receipt/", customer_views.customer_upload_receipt, name="customer-upload-receipt"),
     path("staff/payment-submissions/", customer_views.payment_submissions, name="payment-submissions"),
