@@ -106,7 +106,7 @@ def customer_order(request):
                 "A new online order has been placed. Customer: " + name + " (" + phone + "). Invoice: " + invoice.invoice_number +
                 ". Review it in the staff dashboard.", getattr(settings, "ORDER_NOTIFICATION_EMAIL", ""))
             messages.success(request, "Your order has been submitted. Your invoice number is " + invoice.invoice_number + ".")
-            return redirect("customer-invoice", pk=invoice.pk)
+            return redirect("/customer/invoice/" + str(invoice.pk) + "/?access=" + invoice.invoice_number) if not request.user.is_authenticated else redirect("customer-invoice", pk=invoice.pk)
     return render(request, "customer/order.html", {"products": products})
 
 def _invoice_access(request, invoice):
@@ -148,7 +148,7 @@ def customer_upload_receipt(request, pk):
             messages.success(request, "Receipt submitted. It is awaiting verification; your order is not marked paid yet.")
             _send_customer_email("Payment receipt received - " + invoice.invoice_number,
                 "We received your payment evidence. It will be reviewed by AZ ROCKMASTER. This is not yet payment confirmation.", invoice.order.customer.email)
-            return redirect("customer-invoice", pk=invoice.pk) if request.user.is_authenticated else redirect("customer-invoice", pk=invoice.pk) + "?access=" + invoice.invoice_number
+            return redirect("customer-invoice", pk=invoice.pk) if request.user.is_authenticated else redirect("/customer/invoice/" + str(invoice.pk) + "/?access=" + invoice.invoice_number)
     return render(request, "customer/upload_receipt.html", {"invoice": invoice, "access_token": request.GET.get("access", "")})
 
 def staff_can_verify(user):
