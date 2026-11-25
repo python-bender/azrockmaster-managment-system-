@@ -14,8 +14,10 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("category","active")
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("order_number","customer","product","pricing_basis","quantity","unit_rate","status","order_date")
-    list_filter = ("status","pricing_basis","order_date")
+    list_display = ("order_number","customer","status","requires_quote","quote_status","delivery_charge","order_date")
+    list_filter = ("status","requires_quote","quote_status","order_date")
     search_fields = ("order_number","customer__name","product__name")
+    readonly_fields = ("guest_token",)
+
 for model in (Truck, Driver, Procurement, Dispatch, Invoice, Payment, Expense, OrderItem, PaymentSubmission):
     admin.site.register(model)
