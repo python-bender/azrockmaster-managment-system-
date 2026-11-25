@@ -10,6 +10,7 @@ class TimeStamped(models.Model):
     class Meta: abstract = True
 
 class Customer(TimeStamped):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="rockmaster_customer")
     name = models.CharField(max_length=180)
     phone = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
@@ -39,6 +40,8 @@ class Product(TimeStamped):
     category = models.CharField(max_length=30, choices=Category.choices)
     active = models.BooleanField(default=True)
     description = models.TextField(blank=True)
+    unit_rate = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0"))])
+    unit_label = models.CharField(max_length=30, default="tonne")
     def __str__(self): return self.name
 
 class Truck(TimeStamped):
@@ -80,7 +83,7 @@ class Order(TimeStamped):
     order_date = models.DateField(default=timezone.localdate)
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.ENQUIRY)
     notes = models.TextField(blank=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_orders")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_orders")
     @property
     def sales_total(self): return self.quantity * self.unit_rate
     def __str__(self): return self.order_number
@@ -165,3 +168,21 @@ class Expense(TimeStamped):
         self.status, self.approved_by, self.approved_at = self.Status.APPROVED, user, timezone.now()
         self.save(update_fields=["status","approved_by","approved_at","updated_at"])
     def __str__(self): return f"{self.category} - {self.amount}"
+
+
+class PaymentSubmission(TimeStamped):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Awaiting verification"
+        APPROVED = "approved", "Payment verified"
+        REJECTED = "rejected", "Receipt rejected"
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="submissions")
+    amount_claimed = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    payment_date = models.DateField(default=timezone.localdate)
+    transfer_reference = models.CharField(max_length=120, blank=True)
+    receipt = models.FileField(upload_to="customer_payment_receipts/")
+    customer_note = models.TextField(blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_payment_submissions")
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.TextField(blank=True)
+    def __str__(self): return f"{self.invoice.invoice_number} - {self.get_status_display()}"
