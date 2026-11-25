@@ -42,6 +42,9 @@ class Product(TimeStamped):
     description = models.TextField(blank=True)
     unit_rate = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0"))])
     unit_label = models.CharField(max_length=30, default="tonne")
+    per_tonne_rate = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0"))])
+    per_truck_rate = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), validators=[MinValueValidator(Decimal("0"))])
+    image = models.ImageField(upload_to="product_images/", blank=True)
     def __str__(self): return self.name
 
 class Truck(TimeStamped):
@@ -83,10 +86,32 @@ class Order(TimeStamped):
     order_date = models.DateField(default=timezone.localdate)
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.ENQUIRY)
     notes = models.TextField(blank=True)
+    delivery_charge = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    requires_quote = models.BooleanField(default=False)
+    quote_status = models.CharField(max_length=16, choices=[("not_required","Not required"),("pending","Awaiting quotation"),("approved","Quotation approved"),("declined","Quotation declined")], default="not_required")
+    guest_token = models.UUIDField(default=__import__("uuid").uuid4, editable=False, unique=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_orders")
     @property
-    def sales_total(self): return self.quantity * self.unit_rate
+    def sales_total(self):
+        items = getattr(self, "items", None)
+        if items is not None and items.exists():
+            return sum((item.line_total for item in items.all()), Decimal("0")) + self.delivery_charge
+        return self.quantity * self.unit_rate + self.delivery_charge
     def __str__(self): return self.order_number
+
+class OrderItem(TimeStamped):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    pricing_basis = models.CharField(max_length=10, choices=Order.PricingBasis.choices)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    unit_rate = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(Decimal("0"))])
+    haulage_charge = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    requires_quote = models.BooleanField(default=False)
+    @property
+    def line_total(self):
+        return self.quantity * self.unit_rate + self.haulage_charge
+    def __str__(self):
+        return f"{self.product.name} - {self.order.order_number}"
 
 class Procurement(TimeStamped):
     order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="procurements")
