@@ -98,7 +98,7 @@ def customer_order(request):
                 notes=request.POST.get("notes", "").strip()
             )
             invoice = Invoice.objects.create(order=order, invoice_number="AZR-INV-" + timezone.localdate().strftime("%Y") + "-" + uuid.uuid4().hex[:7].upper())
-            invoice_url = request.build_absolute_uri("/customer/invoice/" + str(invoice.pk) + "/")
+            invoice_url = request.build_absolute_uri("/customer/invoice/" + str(invoice.pk) + "/?access=" + invoice.invoice_number)
             _send_customer_email("AZ ROCKMASTER order received - " + order.order_number,
                 "Thank you for your order. Your invoice " + invoice.invoice_number + " is ready: " + invoice_url +
                 "\nOrder value: NGN " + str(invoice.total) + "\nYour order is awaiting payment and verification.", email)
